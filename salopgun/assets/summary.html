@@ -206,6 +206,14 @@ abbr.term.show::after {
       sec.appendChild(reveal);
       sec.appendChild(ul);
     }
+    (s.equations || []).forEach(function (eq) {
+      var box = el("div", { "class": "eq" });
+      var pre = el("pre");
+      pre.appendChild(el("code", { "data-lang": "latex" }, eq.latex));
+      box.appendChild(pre);
+      if (eq.caption) box.appendChild(el("p", { "class": "eq-caption" }, eq.caption));
+      sec.appendChild(box);
+    });
     (s.code || []).forEach(function (c) {
       var pre = el("pre");
       pre.appendChild(el("code", { "data-lang": c.lang || "" }, c.code));

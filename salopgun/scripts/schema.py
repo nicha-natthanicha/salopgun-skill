@@ -57,6 +57,14 @@ def validate_content(data: dict) -> list[str]:
             errors.append(f"{where}.points: must be a list of strings")
         if sec.get("summary") is not None and not isinstance(sec.get("summary"), str):
             errors.append(f"{where}.summary: must be a string")
+        equations = sec.get("equations")
+        if equations is not None and not isinstance(equations, list):
+            errors.append(f"{where}.equations: must be a list")
+        for k, eq in enumerate(equations if isinstance(equations, list) else []):
+            if not isinstance(eq, dict) or not _is_str(eq.get("latex")):
+                errors.append(f"{where}.equations[{k}].latex: required non-empty string")
+            elif eq.get("caption") is not None and not isinstance(eq["caption"], str):
+                errors.append(f"{where}.equations[{k}].caption: must be a string")
         for j, block in enumerate(sec.get("code") or []):
             if not isinstance(block, dict) or not isinstance(block.get("code"), str):
                 errors.append(f"{where}.code[{j}]: needs a code string")

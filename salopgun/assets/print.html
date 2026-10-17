@@ -22,6 +22,11 @@ ul { margin: .3em 0 .6em; padding-left: 1.2em; }
 li { margin: .15em 0; }
 .focused > h2::after, .focused > h3::after { content: "  เน้น"; font-size: .6em; vertical-align: middle; color: var(--accent-text); }
 .rule { height: 4px; width: 48px; background: var(--accent); border-radius: 2px; margin-bottom: 1em; }
+.eq { margin: .5em 0; break-inside: avoid; }
+.tex.display { margin: .3em 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
+.eqcap { font-size: .85em; color: var(--muted); text-align: center; }
+.tex-error { font-family: monospace; color: #B00020; }
+.katex { font-size: 1.08em; }
 pre { font-family: monospace, Sarabun; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .82em; line-height: 1.45; padding: .6em .8em; border-radius: 6px; background: var(--code-bg); break-inside: avoid; }
 figure { margin: .6em 0; break-inside: avoid; }
 figure img { max-width: 100%; max-height: 60vh; }
@@ -42,5 +47,6 @@ figcaption { font-size: .85em; color: var(--muted); }
 </head>
 <body>
 <!--__BODY__-->
+<!--__KATEX__-->
 </body>
 </html>
