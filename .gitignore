@@ -1,0 +1,5 @@
+.venv/
+.superpowers/
+dist/
+__pycache__/
+.pw.txt
