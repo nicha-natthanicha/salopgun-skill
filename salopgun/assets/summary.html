@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สรุป</title>
+<style>
+/*__FONT__*/
+/*__THEME__*/
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: Sarabun, "Noto Sans Thai", system-ui, sans-serif; font-size: 17px; line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+a { color: var(--primary); }
+header.bar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+}
+header.bar h1 { flex: 1; min-width: 0; margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.icon-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 4px 10px; }
+nav.tabs { display: flex; gap: 4px; }
+nav.tabs button { border: 0; background: none; padding: 4px 10px; border-bottom: 2px solid transparent; }
+nav.tabs button[aria-selected="true"] { border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+nav#toc {
+  position: fixed; inset: 49px auto 0 0; width: 260px; z-index: 15; overflow-y: auto; padding: 16px;
+  background: var(--surface); border-right: 1px solid var(--line); transform: translateX(-100%); transition: transform .2s;
+}
+nav#toc.open { transform: none; }
+nav#toc a { display: block; padding: 4px 0; text-decoration: none; color: var(--text); }
+nav#toc a:hover { color: var(--primary); }
+main { min-width: 0; padding: 16px; max-width: 760px; width: 100%; margin: 0 auto; }
+body[data-layout="desktop"] main { max-width: 1000px; }
+@media (min-width: 1024px) {
+  #menu-toggle { display: none; }
+  .layout { grid-template-columns: 260px minmax(0, 1fr); }
+  nav#toc { position: sticky; top: 49px; height: calc(100vh - 49px); transform: none; }
+}
+@media (min-width: 768px) {
+  body[data-layout="desktop"] #menu-toggle { display: none; }
+  body[data-layout="desktop"] .layout { grid-template-columns: 240px minmax(0, 1fr); }
+  body[data-layout="desktop"] nav#toc { position: sticky; top: 49px; height: calc(100vh - 49px); transform: none; width: 240px; }
+}
+h2, h3, h4 { line-height: 1.35; scroll-margin-top: 64px; }
+section { scroll-margin-top: 64px; }
+#mindmap { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface); overflow-x: auto; }
+#mindmap ul { list-style: none; margin: 0; padding-left: 22px; border-left: 2px solid var(--line); }
+#mindmap > ul { border: 0; padding: 0; }
+#mindmap ul[hidden] { display: none; }
+.mm-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.mm-node[data-node="root"] > .mm-row .label { font-weight: 700; font-size: 1.1em; }
+.toggle { width: 26px; height: 26px; flex: none; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); line-height: 1; }
+.toggle-spacer { width: 26px; flex: none; }
+.label { text-decoration: none; color: var(--text); border-bottom: 2px solid var(--primary); }
+.label.focused::after { content: " ★"; color: var(--accent-text); }
+section.topic { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 16px; }
+section.topic section.topic { margin-left: 4px; padding-left: 12px; border-top: 0; border-left: 3px solid var(--line); }
+.topic-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.topic-head > :first-child { flex: 1; min-width: 0; margin: 8px 0 4px; }
+.topic.focused > .topic-head > :first-child { color: var(--primary); }
+.badge { font-size: 13px; padding: 0 8px; border-radius: 99px; background: var(--primary); color: var(--on-primary); }
+a.back, .reveal { font-size: 14px; }
+.reveal { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 0 10px; }
+.points.hidden li { display: none; }
+.points.hidden::before { content: "ซ่อนอยู่ ลองนึกเองก่อน แล้วกด \"เฉลย\""; color: var(--muted); font-style: italic; }
+pre { overflow-x: auto; overflow-wrap: normal; background: var(--code-bg); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; }
+figure { margin: 12px 0; }
+figure img { max-width: 100%; height: auto; border-radius: 8px; }
+figcaption { font-size: 14px; color: var(--muted); }
+abbr.term { text-decoration: underline dotted var(--primary); cursor: help; position: relative; }
+abbr.term.show::after {
+  content: attr(data-def); position: absolute; left: 0; top: 1.6em; z-index: 10; width: max-content; max-width: min(280px, 80vw);
+  padding: 6px 10px; border-radius: 8px; background: var(--text); color: var(--bg); font-size: 14px; line-height: 1.5;
+}
+#quiz .q { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 12px 0; }
+#quiz .q button { display: block; width: 100%; text-align: left; margin: 6px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+#quiz .q button.correct { border-color: var(--ok); background: var(--ok-bg); }
+#quiz .q button.wrong { border-color: var(--bad); background: var(--bad-bg); }
+#quiz .explain { margin: 6px 0 0; color: var(--muted); }
+#cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.card { min-height: 140px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 16px; text-align: center; display: grid; place-items: center; }
+.card .back { display: none; color: var(--text); }
+.card.flipped { border-color: var(--primary); }
+.card.flipped .front { display: none; }
+.card.flipped .back { display: block; }
+.card .front { font-weight: 700; font-size: 1.1em; }
+[hidden] { display: none !important; }
+@media print { header.bar, nav#toc, .reveal, a.back { display: none !important; } .layout { display: block; } }
+</style>
+</head>
+<body data-layout="mobile">
+<header class="bar">
+  <button id="menu-toggle" class="icon-btn" aria-label="สารบัญ" aria-expanded="false">☰</button>
+  <h1 id="doc-title"></h1>
+  <!--__TABS__-->
+  <button id="theme-toggle" class="icon-btn" aria-label="สลับโหมดมืด/สว่าง">◐</button>
+</header>
+<div class="layout">
+  <nav id="toc" aria-label="สารบัญ"></nav>
+  <main>
+    <div id="summary">
+      <h2 id="mindmap-title">ภาพรวม</h2>
+      <div id="mindmap"></div>
+      <div id="topics"></div>
+      <section id="quiz"><h2>ทบทวน</h2></section>
+    </div>
+    <!--__CARDS__-->
+  </main>
+</div>
+<script type="application/json" id="content">__CONTENT_JSON__</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("content").textContent);
+  var root = document.documentElement;
+
+  function el(tag, attrs, text) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  // ---- theme ----
+  var stored = null;
+  try { stored = localStorage.getItem("salopgun-theme"); } catch (e) {}
+  var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = stored || (prefersDark ? "dark" : "light");
+  document.getElementById("theme-toggle").addEventListener("click", function () {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("salopgun-theme", root.dataset.theme); } catch (e) {}
+  });
+
+  document.body.dataset.layout = data.layout === "desktop" ? "desktop" : "mobile";
+  document.title = data.title;
+  document.getElementById("doc-title").textContent = data.title;
+
+  // ---- table of contents ----
+  var toc = document.getElementById("toc");
+  toc.appendChild(el("a", { href: "#mindmap-title" }, "ภาพรวม"));
+  data.sections.forEach(function (s) { toc.appendChild(el("a", { href: "#sec-" + s.id }, s.title)); });
+  toc.appendChild(el("a", { href: "#quiz" }, "ทบทวน"));
+  var menu = document.getElementById("menu-toggle");
+  menu.addEventListener("click", function () {
+    var open = toc.classList.toggle("open");
+    menu.setAttribute("aria-expanded", String(open));
+  });
+  toc.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") { toc.classList.remove("open"); menu.setAttribute("aria-expanded", "false"); showTab("summary"); }
+  });
+
+  // ---- mind map ----
+  function mmNode(id, title, children, focused, depth) {
+    var li = el("li", { "class": "mm-node", "data-node": id });
+    var row = el("div", { "class": "mm-row" });
+    var list = null;
+    if (children && children.length) {
+      var toggle = el("button", { "class": "toggle", "aria-expanded": depth === 0 ? "true" : "false", "aria-label": "ขยาย/ยุบ" }, depth === 0 ? "−" : "+");
+      row.appendChild(toggle);
+      list = el("ul");
+      if (depth > 0) list.hidden = true;
+      children.forEach(function (c) { list.appendChild(mmNode(c.id, c.title, c.children, c.focused, depth + 1)); });
+      toggle.addEventListener("click", function () {
+        list.hidden = !list.hidden;
+        toggle.textContent = list.hidden ? "+" : "−";
+        toggle.setAttribute("aria-expanded", String(!list.hidden));
+      });
+    } else {
+      row.appendChild(el("span", { "class": "toggle-spacer" }));
+    }
+    var label = el("a", { "class": "label" + (focused ? " focused" : ""), href: id === "root" ? "#topics" : "#sec-" + id }, title);
+    row.appendChild(label);
+    li.appendChild(row);
+    if (list) li.appendChild(list);
+    return li;
+  }
+  var mmRoot = el("ul");
+  mmRoot.appendChild(mmNode("root", data.title, data.sections, false, 0));
+  document.getElementById("mindmap").appendChild(mmRoot);
+
+  // ---- topics ----
+  var images = {};
+  (data.images || []).forEach(function (img) { images[img.id] = img; });
+
+  function topic(s, depth) {
+    var sec = el("section", { "class": "topic" + (s.focused ? " focused" : ""), id: "sec-" + s.id });
+    var head = el("div", { "class": "topic-head" });
+    head.appendChild(el("h" + Math.min(2 + depth, 4), null, s.title));
+    if (s.focused) head.appendChild(el("span", { "class": "badge" }, "เน้น"));
+    head.appendChild(el("a", { "class": "back", href: "#mindmap" }, "↑ ภาพรวม"));
+    sec.appendChild(head);
+    if (s.summary) sec.appendChild(el("p", { "class": "summary" }, s.summary));
+    if (s.points && s.points.length) {
+      var ul = el("ul", { "class": "points" });
+      s.points.forEach(function (p) { ul.appendChild(el("li", null, p)); });
+      var reveal = el("button", { "class": "reveal", "aria-pressed": "false" }, "ซ่อน");
+      reveal.addEventListener("click", function () {
+        var hidden = ul.classList.toggle("hidden");
+        reveal.textContent = hidden ? "เฉลย" : "ซ่อน";
+        reveal.setAttribute("aria-pressed", String(hidden));
+      });
+      sec.appendChild(reveal);
+      sec.appendChild(ul);
+    }
+    (s.code || []).forEach(function (c) {
+      var pre = el("pre");
+      pre.appendChild(el("code", { "data-lang": c.lang || "" }, c.code));
+      sec.appendChild(pre);
+    });
+    (s.image_ids || []).forEach(function (id) {
+      var img = images[id];
+      if (!img) return;
+      var fig = el("figure");
+      fig.appendChild(el("img", { src: img.src || "", alt: img.caption || "" }));
+      if (img.caption) fig.appendChild(el("figcaption", null, img.caption));
+      sec.appendChild(fig);
+    });
+    (s.children || []).forEach(function (c) { sec.appendChild(topic(c, depth + 1)); });
+    return sec;
+  }
+  var topics = document.getElementById("topics");
+  data.sections.forEach(function (s) { topics.appendChild(topic(s, 0)); });
+
+  // ---- glossary tooltips ----
+  var glossary = (data.glossary || []).filter(function (g) { return g.term; })
+    .sort(function (a, b) { return b.term.length - a.term.length; });
+  function wrapTerms(container) {
+    if (!glossary.length) return;
+    var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        var p = n.parentNode;
+        if (!p || /^(CODE|PRE|ABBR|BUTTON|A|H2|H3|H4)$/.test(p.nodeName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      var text = node.nodeValue, lower = text.toLowerCase(), hits = [];
+      glossary.forEach(function (g) {
+        var t = g.term.toLowerCase(), from = 0, i;
+        while ((i = lower.indexOf(t, from)) !== -1) {
+          var overlaps = hits.some(function (h) { return i < h.end && i + t.length > h.start; });
+          if (!overlaps) hits.push({ start: i, end: i + t.length, g: g });
+          from = i + t.length;
+        }
+      });
+      if (!hits.length) return;
+      hits.sort(function (a, b) { return a.start - b.start; });
+      var frag = document.createDocumentFragment(), pos = 0;
+      hits.forEach(function (h) {
+        frag.appendChild(document.createTextNode(text.slice(pos, h.start)));
+        frag.appendChild(el("abbr", { "class": "term", title: h.g.definition, "data-def": h.g.definition, tabindex: "0" }, text.slice(h.start, h.end)));
+        pos = h.end;
+      });
+      frag.appendChild(document.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  wrapTerms(topics);
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("abbr.term") : null;
+    document.querySelectorAll("abbr.term.show").forEach(function (a) { if (a !== t) a.classList.remove("show"); });
+    if (t) t.classList.toggle("show");
+  });
+
+  // ---- quiz ----
+  var quiz = document.getElementById("quiz");
+  (data.quiz || []).forEach(function (q, qi) {
+    var box = el("div", { "class": "q" });
+    box.appendChild(el("p", null, (qi + 1) + ". " + q.question));
+    var explain = el("p", { "class": "explain" }, q.explanation || "");
+    explain.hidden = true;
+    var buttons = q.choices.map(function (c, ci) {
+      var b = el("button", { "class": "choice" }, c);
+      b.addEventListener("click", function () {
+        buttons.forEach(function (x, xi) {
+          x.disabled = true;
+          if (xi === q.answer_index) x.classList.add("correct");
+        });
+        if (ci !== q.answer_index) b.classList.add("wrong");
+        explain.hidden = false;
+      });
+      box.appendChild(b);
+      return b;
+    });
+    box.appendChild(explain);
+    quiz.appendChild(box);
+  });
+
+  // ---- cards + tabs ----
+  var cards = document.getElementById("cards");
+  if (cards) {
+    (data.cards || []).forEach(function (c) {
+      var card = el("button", { "class": "card" });
+      card.appendChild(el("div", { "class": "front" }, c.front));
+      card.appendChild(el("div", { "class": "back" }, c.back));
+      card.addEventListener("click", function () { card.classList.toggle("flipped"); });
+      cards.appendChild(card);
+    });
+  }
+  function showTab(name) {
+    var summary = document.getElementById("summary");
+    if (!cards) return;
+    summary.hidden = name !== "summary";
+    cards.hidden = name !== "cards";
+    document.querySelectorAll("nav.tabs button").forEach(function (b) {
+      b.setAttribute("aria-selected", String(b.dataset.tab === name));
+    });
+  }
+  document.querySelectorAll("nav.tabs button").forEach(function (b) {
+    b.addEventListener("click", function () { showTab(b.dataset.tab); });
+  });
+  document.getElementById("mindmap").addEventListener("click", function (e) {
+    if (e.target.classList.contains("label")) showTab("summary");
+  });
+})();
+</script>
+</body>
+</html>
