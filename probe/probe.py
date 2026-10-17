@@ -1,29 +1,24 @@
-"""Probe the claude.ai code sandbox: which packages exist and which tool renders Thai PDFs.
+"""Probe the claude.ai code sandbox for what the SalopGun skill can use.
 
-Run: python probe.py  (writes probe-*.pdf next to the current directory and prints a report)
+Run: python probe.py   (prints a report; nothing is written)
 """
-import base64
 import importlib
 import platform
 import shutil
 import sys
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-FONT = HERE / "Sarabun-Regular.ttf"
-THAI = (
-    "การเรียนรู้ของเครื่องเป็นสาขาหนึ่งของปัญญาประดิษฐ์ที่ศึกษาวิธีทำให้คอมพิวเตอร์เรียนรู้จากข้อมูล"
-    "โดยไม่ต้องเขียนโปรแกรมกำหนดกฎทุกข้อไว้ล่วงหน้า ตัวอย่างเช่น การจำแนกอีเมลขยะ การแนะนำสินค้า "
-) * 6
-
-
-def html() -> str:
-    font = base64.b64encode(FONT.read_bytes()).decode() if FONT.exists() else ""
-    return f"""<!doctype html><html lang="th"><meta charset="utf-8"><style>
-@font-face {{ font-family: Sarabun; src: url(data:font/ttf;base64,{font}); }}
-@page {{ size: 90mm 160mm; margin: 8mm; }}
-body {{ font-family: Sarabun; font-size: 11pt; line-break: auto; word-break: normal; }}
-</style><h1>ทดสอบภาษาไทย ปู่ ปี้ ก่ำ ญิ๋ง</h1><p>{THAI}</p></html>"""
+# what the skill does with each, so the report says what is lost when one is missing
+PACKAGES = {
+    "pymupdf": "read PDF slides: slide hints, snapshots, colours, pictures",
+    "fitz": "same as pymupdf (older import name)",
+    "pptx": "not needed (pptx is read as plain zip/XML)",
+    "PIL": "check picture sizes (optional)",
+    "pypdf": "not needed",
+}
+BINARIES = {
+    "soffice": "turn .pptx slides into images for snapshots",
+    "libreoffice": "same as soffice",
+}
 
 
 def try_import(name: str) -> str:
@@ -34,37 +29,12 @@ def try_import(name: str) -> str:
         return f"MISSING ({type(exc).__name__})"
 
 
-def render_playwright(out: Path) -> str:
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.set_content(html())
-        page.pdf(path=str(out), prefer_css_page_size=True)
-        browser.close()
-    return "ok"
-
-
-def render_weasyprint(out: Path) -> str:
-    import weasyprint
-
-    weasyprint.HTML(string=html()).write_pdf(str(out))
-    return "ok"
-
-
 def main() -> None:
     print("python", sys.version.split()[0], platform.platform())
-    for name in ["playwright", "weasyprint", "fitz", "pypdf", "pptx", "PIL", "reportlab", "markdown"]:
-        print(f"import {name}: {try_import(name)}")
-    for binary in ["chromium", "chromium-browser", "google-chrome", "wkhtmltopdf", "libreoffice", "soffice"]:
-        print(f"binary {binary}: {shutil.which(binary) or 'MISSING'}")
-    for engine, fn in [("playwright", render_playwright), ("weasyprint", render_weasyprint)]:
-        out = Path.cwd() / f"probe-{engine}.pdf"
-        try:
-            print(f"render {engine}: {fn(out)} -> {out}")
-        except Exception as exc:  # noqa: BLE001
-            print(f"render {engine}: FAILED {type(exc).__name__}: {exc}"[:300])
+    for name, use in PACKAGES.items():
+        print(f"import {name}: {try_import(name)}   [{use}]")
+    for name, use in BINARIES.items():
+        print(f"binary {name}: {shutil.which(name) or 'MISSING'}   [{use}]")
 
 
 if __name__ == "__main__":

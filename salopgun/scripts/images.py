@@ -159,7 +159,8 @@ def extract_images(source: str, out_dir: str) -> list:
     found: list = []
 
     def keep(data: bytes, ext: str, slide: int) -> None:
-        path = out / f"img{len(found) + 1}.{ext}"
+        on_slide = sum(1 for f in found if f["slide"] == slide) + 1
+        path = out / f"p{slide:02d}-img{on_slide}.{ext}"
         path.write_bytes(data)
         if _big_enough(path):
             found.append({"id": f"img{len(found) + 1}", "path": str(path.resolve()), "caption": "",
@@ -244,7 +245,7 @@ def snapshots(source: str, pages: list, out_dir: str, dpi: int = 110) -> list:
             for number in pages:
                 if not 1 <= number <= len(doc):
                     raise ValueError(f"--pages: {number} is outside 1-{len(doc)}")
-                path = out / f"slide{number}.jpg"
+                path = out / f"p{number:02d}-slide.jpg"
                 doc[number - 1].get_pixmap(dpi=dpi, alpha=False).save(str(path), jpg_quality=82)
                 shots.append({"id": f"slide{number}", "path": str(path.resolve()), "caption": "",
                               "kind": "slide", "slide": number})

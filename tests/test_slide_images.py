@@ -10,7 +10,6 @@ from pptx import Presentation
 from pptx.util import Inches
 
 import images
-from build_pdf import build_pdf, print_html
 from conftest import FIXTURES, ROOT, load
 from schema import validate_content
 from theme import neutral_theme
@@ -61,6 +60,13 @@ def test_pptx_pictures_report_slide_numbers(tmp_path):
     found = images.extract_images(str(make_deck(tmp_path, [[], [a], [b]])), str(tmp_path / "out"))
     assert [(f["slide"], f["kind"]) for f in found] == [(2, "picture"), (3, "picture")]
     assert [f["id"] for f in found] == ["img1", "img2"] and all(Path(f["path"]).exists() for f in found)
+    assert [Path(f["path"]).name for f in found] == ["p02-img1.png", "p03-img1.png"]
+
+
+def test_two_pictures_on_one_slide_get_separate_names(tmp_path):
+    a, b = png(tmp_path / "a.png", (200, 30, 30)), png(tmp_path / "b.png", (30, 200, 30))
+    found = images.extract_images(str(make_deck(tmp_path, [[a, b]])), str(tmp_path / "out"))
+    assert [Path(f["path"]).name for f in found] == ["p01-img1.png", "p01-img2.png"]
 
 
 def test_logo_repeated_on_three_slides_is_skipped(tmp_path):
@@ -92,6 +98,7 @@ def test_pdf_pictures_report_page_numbers(tmp_path):
     a = png(tmp_path / "a.png", (200, 30, 30))
     found = images.extract_images(str(make_pdf(tmp_path, [{}, {"pic": a}, {}])), str(tmp_path / "out"))
     assert [(f["slide"], f["kind"]) for f in found] == [(2, "picture")]
+    assert Path(found[0]["path"]).name.startswith("p02-img1.")
 
 
 # ---- slide info (which slides are worth a snapshot) ----
@@ -131,6 +138,7 @@ def test_parse_pages():
 def test_snapshots_from_pdf(tmp_path):
     shots = images.snapshots(str(make_pdf(tmp_path, [{}, {"rects": 5}, {}])), [2], str(tmp_path / "shots"), dpi=100)
     assert [(s["id"], s["kind"], s["slide"]) for s in shots] == [("slide2", "slide", 2)]
+    assert Path(shots[0]["path"]).name == "p02-slide.jpg"
     with Image.open(shots[0]["path"]) as im:
         assert im.format == "JPEG" and abs(im.width - 595 * 100 / 72) < 3
 
@@ -195,56 +203,7 @@ def test_image_kind_and_slide_validated(tmp_path):
     assert any("slide" in e for e in validate_content(c))
 
 
-@pytest.mark.parametrize("style", ["bullet", "mindmap"])
-def test_images_appear_in_both_pdf_styles(tmp_path, style):
-    r = build_pdf(content_with_image(tmp_path), neutral_theme(), tmp_path / f"{style}.pdf", "A4", "landscape", style)
-    with pymupdf.open(r["path"]) as doc:
-        assert sum(len(p.get_images()) for p in doc) == 1
-        assert "รูปประกอบ" in "".join(p.get_text() for p in doc)
-
-
-def test_slide_snapshots_get_their_own_frame_and_label(tmp_path):
-    html = print_html(content_with_image(tmp_path, kind="slide", slide=3), neutral_theme(), (210, 297), "bullet")
-    assert '<figure class="slide">' in html and "สไลด์ที่ 3" in html
-    plain = print_html(content_with_image(tmp_path, kind="picture", slide=3), neutral_theme(), (210, 297), "bullet")
-    assert '<figure class="slide">' not in plain
-
-
-def test_two_images_in_one_section_both_render(tmp_path):
-    c = content_with_image(tmp_path)
-    c["images"].append({**c["images"][0], "id": "img2", "caption": "รูปที่สอง"})
-    c["sections"][1]["image_ids"] = ["img1", "img2"]
-    r = build_pdf(c, neutral_theme(), tmp_path / "two.pdf", "A4", "portrait", "bullet")
-    with pymupdf.open(r["path"]) as doc:
-        assert "รูปที่สอง" in "".join(p.get_text() for p in doc)
-
-
-def test_skill_md_documents_slides_snapshots_and_math():
+def test_skill_md_documents_slides_snapshots_and_designpack():
     text = (ROOT / "salopgun" / "SKILL.md").read_text(encoding="utf-8")
-    for needle in ("`slides --source", "`snapshots --source", "math_errors", "equations", "\\\\$"):
+    for needle in ("`slides --source", "`snapshots --source", "designpack --md", "references/md-guide.md", "equations"):
         assert needle in text
-
-
-def test_mindmap_with_big_slide_snapshots_does_not_leave_first_page_empty(tmp_path):
-    big = tmp_path / "slide.jpg"
-    Image.new("RGB", (794, 1123), (230, 240, 255)).save(big, quality=80)
-    c = load("content_min.json")
-    c["images"] = [{"id": "slide1", "path": str(big), "caption": "ภาพสไลด์", "kind": "slide", "slide": 2},
-                   {"id": "slide2", "path": str(big), "caption": "ภาพสไลด์อีกใบ", "kind": "slide", "slide": 3}]
-    c["sections"][0]["image_ids"] = ["slide1"]
-    c["sections"][1]["image_ids"] = ["slide2"]
-    r = build_pdf(c, neutral_theme(), tmp_path / "mm.pdf", "A4", "landscape", "mindmap")
-    with pymupdf.open(r["path"]) as doc:
-        assert "Machine Learning คืออะไร" in doc[0].get_text()
-        assert r["pages"] <= 2
-
-
-def test_bullet_figures_are_capped_in_height(tmp_path):
-    big = tmp_path / "tall.png"
-    Image.new("RGB", (400, 1200), (200, 220, 240)).save(big)
-    c = content_with_image(tmp_path)
-    c["images"][0]["path"] = str(big)
-    r = build_pdf(c, neutral_theme(), tmp_path / "b.pdf", "A4", "portrait", "bullet")
-    with pymupdf.open(r["path"]) as doc:
-        rects = [rect for p in doc for info in p.get_image_info() for rect in [pymupdf.Rect(info["bbox"])]]
-    assert rects and max(rc.height for rc in rects) <= 95 * 72 / 25.4

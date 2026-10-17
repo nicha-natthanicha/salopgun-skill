@@ -43,26 +43,15 @@ def test_bad_user_color_exits_2(tmp_path, blue_pptx):
     assert r.returncode == 2 and "primary" in r.stderr
 
 
-def test_html_pdf_podcast_end_to_end(tmp_path):
+def test_html_and_podcast_end_to_end(tmp_path):
     theme = neutral_json(tmp_path)
     content = FIXTURES / "content_min.json"
     r = run_cli("html", "--content", content, "--theme", theme, "--cards", "--out", tmp_path / "s.html")
     assert r.returncode == 0, r.stderr
     assert "data-tab='cards'" in (tmp_path / "s.html").read_text(encoding="utf-8")
-    r = run_cli("pdf", "--content", content, "--theme", theme, "--paper", "B5", "--orientation", "portrait",
-                "--style", "mindmap", "--max-pages", "3", "--out", tmp_path / "s.pdf")
-    assert r.returncode == 0, r.stderr
-    result = json.loads(r.stdout)
-    assert result["pages"] >= 1 and result["over_limit"] is False
     r = run_cli("podcast", "--content", content, "--dialogue", FIXTURES / "dialogue_by_chapter.json", "--out-dir", tmp_path / "pod")
     assert r.returncode == 0, r.stderr
     assert sorted(p.name for p in (tmp_path / "pod").iterdir()) == ["notebooklm-prompt.txt", "podcast-01.md", "podcast-02.md"]
-
-
-def test_pdf_custom_size(tmp_path):
-    r = run_cli("pdf", "--content", FIXTURES / "content_min.json", "--theme", neutral_json(tmp_path), "--paper", "custom",
-                "--size", "100x150", "--orientation", "portrait", "--style", "bullet", "--out", tmp_path / "c.pdf")
-    assert r.returncode == 0, r.stderr
 
 
 def test_images_extracted_from_pptx(tmp_path):

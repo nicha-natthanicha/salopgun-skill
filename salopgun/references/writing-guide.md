@@ -26,8 +26,8 @@ The reader is a student reviewing a lecture, often on a phone, often the night b
 - 8–20 cards. `front` = a term or question, `back` = a short answer. One concept per card.
 
 ## Equations
-- Every formula the lecture teaches should appear, as LaTeX (see SKILL.md → Equations). Put the
-  key ones in `equations` with a caption saying what they mean; explain the symbols in a point.
+- Every formula the lecture teaches should appear, as LaTeX in `equations` with a caption saying
+  what it means (the HTML shows the LaTeX source); explain the symbols in a point.
 - Keep the source's notation and symbols exactly.
 
 ## Images
