@@ -1,5 +1,4 @@
 """Regression tests for the final-review fix pass."""
-import builtins
 import json
 import subprocess
 import sys
@@ -62,33 +61,6 @@ def test_long_url_does_not_scroll_page_on_phone(tmp_path):
         b.close(); p.stop()
 
 
-def test_long_url_stays_inside_mobile_pdf(tmp_path):
-    from build_pdf import build_pdf
-    from test_build_pdf import text_boxes_inside_page
-    c = load("content_min.json")
-    c["sections"][0]["points"].append(LONG_URL)
-    r = build_pdf(c, neutral_theme(), tmp_path / "u.pdf", "mobile", "portrait", "bullet")
-    assert text_boxes_inside_page(r["path"])
-    import pymupdf
-    with pymupdf.open(r["path"]) as doc:
-        visible = "".join(page.get_text() for page in doc).replace("\n", "")
-    assert "abcdefghij.html" in visible
-
-
-def test_page_count_without_pypdf(tmp_path, monkeypatch):
-    import build_pdf as mod
-    real_import = builtins.__import__
-
-    def no_pypdf(name, *a, **k):
-        if name == "pypdf":
-            raise ImportError("blocked")
-        return real_import(name, *a, **k)
-
-    monkeypatch.setattr(builtins, "__import__", no_pypdf)
-    r = mod.build_pdf(load("content_min.json"), neutral_theme(), tmp_path / "o.pdf", "A4", "portrait", "bullet", max_pages=1)
-    assert r["pages"] >= 1
-
-
 def test_child_id_lines_get_their_topic_heading(tmp_path):
     from build_podcast import build_podcast
     d = load("dialogue_ok.json")
@@ -109,7 +81,7 @@ def test_non_string_points_rejected():
 
 def test_null_caption_and_summary_are_fine(tmp_path):
     from PIL import Image
-    from build_pdf import build_pdf
+    from build_html import build_html
     from schema import validate_content
     img = tmp_path / "dot.png"
     Image.new("RGB", (200, 200), (255, 0, 0)).save(img)
@@ -118,7 +90,7 @@ def test_null_caption_and_summary_are_fine(tmp_path):
     c["sections"][0]["image_ids"] = ["img1"]
     c["sections"][1]["summary"] = None
     assert validate_content(c) == []
-    assert build_pdf(c, neutral_theme(), tmp_path / "n.pdf", "A4", "portrait", "bullet")["pages"] >= 1
+    assert build_html(c, neutral_theme(), tmp_path / "n.html", False).exists()
 
 
 def run_cli(*args):
@@ -149,19 +121,5 @@ def test_relative_image_path_resolves_from_content_folder(tmp_path):
 
 def test_incomplete_theme_json_exits_2(tmp_path):
     (tmp_path / "t.json").write_text('{"primary": "#123456"}')
-    r = run_cli("pdf", "--content", FIXTURES / "content_min.json", "--theme", tmp_path / "t.json", "--paper", "A4",
-                "--orientation", "portrait", "--style", "bullet", "--out", tmp_path / "o.pdf")
+    r = run_cli("html", "--content", FIXTURES / "content_min.json", "--theme", tmp_path / "t.json", "--out", tmp_path / "o.html")
     assert r.returncode == 2 and "background" in r.stderr
-
-
-def test_size_without_custom_paper_exits_2(tmp_path):
-    (tmp_path / "t.json").write_text(json.dumps(neutral_theme()))
-    r = run_cli("pdf", "--content", FIXTURES / "content_min.json", "--theme", tmp_path / "t.json", "--paper", "A4",
-                "--size", "100x150", "--orientation", "portrait", "--style", "bullet", "--out", tmp_path / "o.pdf")
-    assert r.returncode == 2 and "custom" in r.stderr
-
-
-def test_skill_md_documents_custom_size_and_print_html_pages():
-    text = (ROOT / "salopgun" / "SKILL.md").read_text(encoding="utf-8")
-    assert "--paper custom --size" in text
-    assert "pages" in text.split("print-html")[1][:400]

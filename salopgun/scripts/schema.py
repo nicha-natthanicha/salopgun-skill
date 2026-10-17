@@ -37,6 +37,10 @@ def validate_content(data: dict) -> list[str]:
             errors.append(f"images[{i}]: needs id and path")
         elif img.get("caption") is not None and not isinstance(img.get("caption"), str):
             errors.append(f"images[{i}].caption: must be a string")
+        elif img.get("kind") not in (None, "picture", "slide"):
+            errors.append(f"images[{i}].kind: must be picture or slide")
+        elif img.get("slide") is not None and (not isinstance(img["slide"], int) or isinstance(img["slide"], bool) or img["slide"] < 1):
+            errors.append(f"images[{i}].slide: must be a whole number from 1")
 
     seen: set[str] = set()
     for where, sec in _walk(sections):
@@ -57,6 +61,14 @@ def validate_content(data: dict) -> list[str]:
             errors.append(f"{where}.points: must be a list of strings")
         if sec.get("summary") is not None and not isinstance(sec.get("summary"), str):
             errors.append(f"{where}.summary: must be a string")
+        equations = sec.get("equations")
+        if equations is not None and not isinstance(equations, list):
+            errors.append(f"{where}.equations: must be a list")
+        for k, eq in enumerate(equations if isinstance(equations, list) else []):
+            if not isinstance(eq, dict) or not _is_str(eq.get("latex")):
+                errors.append(f"{where}.equations[{k}].latex: required non-empty string")
+            elif eq.get("caption") is not None and not isinstance(eq["caption"], str):
+                errors.append(f"{where}.equations[{k}].caption: must be a string")
         for j, block in enumerate(sec.get("code") or []):
             if not isinstance(block, dict) or not isinstance(block.get("code"), str):
                 errors.append(f"{where}.code[{j}]: needs a code string")

@@ -1,15 +1,14 @@
 # Sandbox probe results
 
-## Local dev machine (2026-10-17)
-- Python 3.14.7, macOS arm64
-- Available: playwright (+ chromium headless shell), pymupdf 1.28.2, pypdf 6.21.0, python-pptx 1.0.2, Pillow 13.0.0
-- Missing: weasyprint, reportlab
-- Thai render (playwright, Sarabun embedded, 90x160 mm): correct vowel/tone placement, wraps at word boundaries. PASS.
+The skill no longer renders PDFs itself (Claude Design does), so the probe only checks what the
+slide helpers need: PyMuPDF (slide hints, snapshots from PDF, theme colours from PDF) and
+LibreOffice (`soffice`, snapshots from .pptx).
 
 ## claude.ai sandbox
-PENDING — needs a manual run: zip `probe/`, upload under Settings → Capabilities → Skills,
-enable code execution, then ask in chat "run the salopgun probe" and paste the report here.
+PENDING: upload `docs/salopgun-probe.zip` under Settings → Capabilities → Skills, enable code
+execution, ask in chat "run the salopgun probe", and paste the report here.
 
-## PDF_ENGINE
-Chosen at runtime by `build_pdf` in this order: playwright → weasyprint → print-html
-(see ledger ruling). The claude.ai result above decides which one users actually get.
+What a missing piece costs:
+- no PyMuPDF: `slides`, `snapshots` on PDF and PDF colour extraction stop working (pptx hints,
+  embedded pictures and pptx colours still work, they only need the standard library)
+- no `soffice`: `snapshots` on .pptx exits with code 2; the user exports the slides as PDF instead

@@ -157,3 +157,11 @@ def test_images_are_embedded(browser, tmp_path):
     c["sections"][0]["image_ids"] = ["img1"]
     p = open_page(browser, build_html(c, neutral_theme(), tmp_path / "i.html", False))
     assert p.get_attribute("#sec-s1 img", "src").startswith("data:image/png;base64,")
+
+
+def test_equations_show_as_latex_source(browser, tmp_path):
+    c = load("content_min.json")
+    c["sections"][1]["equations"] = [{"latex": r"\frac{a}{b}+\sum_{i=1}^{n} x_i", "caption": "สมการตัวอย่าง"}]
+    p = open_page(browser, build_html(c, neutral_theme(), tmp_path / "e.html", False))
+    text = p.inner_text("#sec-s2")
+    assert r"\frac{a}{b}+\sum_{i=1}^{n} x_i" in text and "สมการตัวอย่าง" in text

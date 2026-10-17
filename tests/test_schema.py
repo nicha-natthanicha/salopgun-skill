@@ -40,3 +40,15 @@ def test_bad_layout_rejected():
     data = load("content_min.json")
     data["layout"] = "tablet"
     assert any("layout" in e for e in validate_content(data))
+
+
+def test_equation_schema_validation():
+    c = load("content_min.json")
+    c["sections"][1]["equations"] = [{"latex": r"\frac{a}{b}", "caption": "สมการ"}]
+    assert validate_content(c) == []
+    c["sections"][1]["equations"] = [{"latex": ""}]
+    assert any("equations" in e for e in validate_content(c))
+    c["sections"][1]["equations"] = [{"latex": "x", "caption": 5}]
+    assert any("caption" in e for e in validate_content(c))
+    c["sections"][1]["equations"] = "x=1"
+    assert any("equations" in e for e in validate_content(c))

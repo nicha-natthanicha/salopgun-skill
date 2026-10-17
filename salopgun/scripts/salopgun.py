@@ -1,4 +1,4 @@
-"""SalopGun command line: theme, images, html, pdf, podcast. Exit code 2 = fix your input and re-run."""
+"""SalopGun command line: theme, slides, images, snapshots, html, podcast, designpack. Exit code 2 = fix your input and re-run."""
 import argparse
 import json
 import re
@@ -8,9 +8,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from build_html import build_html  # noqa: E402
-from build_pdf import build_pdf  # noqa: E402
 from build_podcast import build_podcast  # noqa: E402
-from images import extract_images  # noqa: E402
+from designpack import build_pack  # noqa: E402
+from images import extract_images, parse_pages, slide_info, snapshots  # noqa: E402
 from schema import validate_content, validate_dialogue  # noqa: E402
 from theme import extract_theme  # noqa: E402
 
@@ -75,25 +75,48 @@ def cmd_images(a) -> None:
     print(json.dumps(extract_images(a.source, a.out_dir), ensure_ascii=False, indent=1))
 
 
+def cmd_slides(a) -> None:
+    print(json.dumps(slide_info(a.source), indent=1))
+
+
+def cmd_snapshots(a) -> None:
+    import pymupdf
+
+    src = Path(a.source)
+    count = None
+    if src.suffix.lower() == ".pdf":
+        with pymupdf.open(src) as doc:
+            count = len(doc)
+    else:
+        count = len(slide_info(a.source))
+    print(json.dumps(snapshots(a.source, parse_pages(a.pages, count), a.out_dir, a.dpi), ensure_ascii=False, indent=1))
+
+
 def cmd_html(a) -> None:
     content = load_content(a.content)
     out = build_html(content, load_theme(a.theme), a.out, a.cards, base_dir=Path(a.content).resolve().parent)
     print(out)
 
 
-def cmd_pdf(a) -> None:
-    content = load_content(a.content)
-    custom = None
+
+def cmd_designpack(a) -> None:
     if a.size and a.paper != "custom":
         raise InputError("--size only works with --paper custom")
+    size = None
     if a.paper == "custom":
         m = re.fullmatch(r"(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)", a.size or "")
         if not m:
             raise InputError("--size: use WIDTHxHEIGHT in mm, e.g. 100x150")
-        custom = (float(m.group(1)), float(m.group(2)))
-    result = build_pdf(content, load_theme(a.theme), a.out, a.paper, a.orientation, a.style,
-                       max_pages=a.max_pages, custom_size=custom, base_dir=Path(a.content).resolve().parent)
-    print(json.dumps(result, ensure_ascii=False))
+        size = (float(m.group(1)), float(m.group(2)))
+    try:
+        md = Path(a.md).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise InputError(f"{a.md}: cannot read ({exc})") from exc
+    result = build_pack(md, a.out_dir, images_dir=a.images_dir, name=a.name,
+                        kinds=[k.strip() for k in a.kinds.split(",") if k.strip()], paper=a.paper,
+                        orientation=a.orientation, pages=a.pages, style=a.style,
+                        theme=load_theme(a.theme) if a.theme else None, size=size)
+    print(json.dumps(result, ensure_ascii=False, indent=1))
 
 
 def cmd_podcast(a) -> None:
@@ -117,22 +140,34 @@ def parser() -> argparse.ArgumentParser:
     i.add_argument("--source", required=True)
     i.add_argument("--out-dir", required=True)
     i.set_defaults(fn=cmd_images)
+    s = sub.add_parser("slides", help="per-slide facts: pictures, shapes, equations, 'visual' hint")
+    s.add_argument("--source", required=True)
+    s.set_defaults(fn=cmd_slides)
+    n = sub.add_parser("snapshots", help="render whole slides to JPEG images")
+    n.add_argument("--source", required=True)
+    n.add_argument("--pages", required=True, help="e.g. 3,5,7-9 (1-based)")
+    n.add_argument("--out-dir", required=True)
+    n.add_argument("--dpi", type=int, default=110)
+    n.set_defaults(fn=cmd_snapshots)
     h = sub.add_parser("html", help="build the interactive HTML summary")
     h.add_argument("--content", required=True)
     h.add_argument("--theme", required=True)
     h.add_argument("--cards", action="store_true")
     h.add_argument("--out", required=True)
     h.set_defaults(fn=cmd_html)
-    d = sub.add_parser("pdf", help="build the PDF summary")
-    d.add_argument("--content", required=True)
-    d.add_argument("--theme", required=True)
-    d.add_argument("--paper", required=True, choices=["A4", "B5", "mobile", "desktop", "custom"])
-    d.add_argument("--size", help="custom size in mm, WIDTHxHEIGHT")
-    d.add_argument("--orientation", required=True, choices=["portrait", "landscape"])
-    d.add_argument("--style", required=True, choices=["bullet", "mindmap"])
-    d.add_argument("--max-pages", type=int)
-    d.add_argument("--out", required=True)
-    d.set_defaults(fn=cmd_pdf)
+    k = sub.add_parser("designpack", help="package the summary md + prompt + images for Claude Design")
+    k.add_argument("--md", required=True, help="the summary you wrote, content only")
+    k.add_argument("--images-dir", help="folder with the images the md links to as images/<file>")
+    k.add_argument("--kinds", required=True, help="comma list of: concise,teaching,exam")
+    k.add_argument("--paper", required=True, choices=["A4", "B5", "mobile", "desktop", "custom"])
+    k.add_argument("--size", help="custom size in mm, WIDTHxHEIGHT")
+    k.add_argument("--orientation", required=True, choices=["portrait", "landscape"])
+    k.add_argument("--pages", type=int, help="page limit for the concise sheet")
+    k.add_argument("--style", required=True, choices=["bullet", "mindmap"])
+    k.add_argument("--theme", help="theme.json from the theme command")
+    k.add_argument("--name", default="summary")
+    k.add_argument("--out-dir", required=True)
+    k.set_defaults(fn=cmd_designpack)
     c = sub.add_parser("podcast", help="write NotebookLM podcast scripts")
     c.add_argument("--content", required=True)
     c.add_argument("--dialogue", required=True)
