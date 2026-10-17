@@ -25,6 +25,15 @@ The reader is a student reviewing a lecture, often on a phone, often the night b
 ## Cards (only if requested)
 - 8–20 cards. `front` = a term or question, `back` = a short answer. One concept per card.
 
+## Equations
+- Every formula the lecture teaches should appear, as LaTeX (see SKILL.md → Equations). Put the
+  key ones in `equations` with a caption saying what they mean; explain the symbols in a point.
+- Keep the source's notation and symbols exactly.
+
 ## Images
-- Only images that carry meaning (diagram, chart, table). Attach each to the section it explains
-  with `image_ids`, and write a short `caption`.
+- Include the lecture's own diagrams, charts and figures wherever they explain a topic, at
+  least one per topic that has one in the source. Skip decoration, logos and stock photos.
+- Attach each to the section it explains with `image_ids` (a section may have several) and write a
+  short `caption` that says what to notice, not just what it is.
+- A `kind: "slide"` snapshot shows the whole slide with its slide number; use it when the figure
+  only exists as shapes on the slide.

@@ -52,10 +52,25 @@ Run every command with `python SKILL_DIR/scripts/salopgun.py …`. A command tha
 prints what is wrong, one problem per line: fix your JSON and run it again.
 
 1. **Theme:** `theme --source <attached file> [--user-theme '{"primary": "#RRGGBB"}'] --out theme.json`
-2. **Images** (pptx/pdf only): `images --source <attached file> --out-dir images`. Look at the
-   extracted images and keep only ones that explain something (diagrams, charts, tables).
+2. **Pictures from the slides** (pptx/pdf only). Use them: a summary with its diagrams is worth
+   far more than text alone.
+   1. `slides --source <attached file>` lists every slide with `pictures`, `drawings`, `equations`
+      (pptx only) and a `visual` hint. Slides marked `visual: true` probably hold a diagram, chart
+      or figure; slides with `equations > 0` hold math.
+   2. `images --source <attached file> --out-dir images` extracts the embedded pictures (`kind:
+      "picture"`, with the `slide` they came from). Logos and backgrounds repeated on many slides
+      are skipped. Look at them and keep the ones that explain something.
+   3. Many diagrams are drawn with shapes, not embedded pictures, so they are not in step 2.
+      For those slides, and for slides whose math you need to read, run
+      `snapshots --source <attached file> --pages 3,5,7-9 --out-dir images` (whole slide as a
+      JPEG, `kind: "slide"`). Pick pages deliberately (diagram or figure slides, normally at most
+      about 10) and look at them. If it exits with code 2 saying LibreOffice is missing for a
+      .pptx, ask the user to export the slides as a PDF and run it on that file.
+   4. Put every image you keep in `content.json` → `images` (copy the entries the commands
+      printed, write a `caption`) and attach it to the section it explains with `image_ids`.
+      Prefer the clean embedded picture; use a slide snapshot when the figure only exists there.
 3. **content.json:** write it following `references/content-schema.md` and
-   `references/writing-guide.md`. Set `layout` to `desktop` if the document is mainly about code,
+   `references/writing-guide.md`. Write math as LaTeX (see "Equations" below). Set `layout` to `desktop` if the document is mainly about code,
    otherwise `mobile`. Mark the chosen focus topics `"focused": true`. Add `cards` only if they
    asked for the card page.
 4. **Output:**
@@ -64,11 +79,28 @@ prints what is wrong, one problem per line: fix your JSON and run it again.
      For `ระบุเอง` use `--paper custom --size WxH` (mm, e.g. `100x150`).
      It prints JSON. If `over_limit` is true, shorten the topics that are **not** focused first,
      then rebuild; at most 3 tries, then tell the user how many pages it came to.
+     `math_errors` lists LaTeX that failed to typeset; fix each one in content.json and rebuild
+     (repeat until it is empty). Math is only typeset by the `playwright` engine.
      If `engine` is `print-html`, no PDF tool exists here: you got a print-ready HTML file
      instead and `pages` is 0, so the page count was not checked; don't claim one. Tell the user
      to open it in a browser and choose Print → Save as PDF, and that the page count may differ.
 5. **Podcast** (if wanted): write `dialogue.json` following `references/podcast-guide.md`, then
    `podcast --content content.json --dialogue dialogue.json --out-dir <outputs>/podcast`.
+
+## Equations
+
+Whenever the source has math (formulas, equations, a derivation), write it as LaTeX so the PDF
+typesets it properly:
+- A displayed equation goes in the section's `equations`: `{"latex": "\\frac{a}{b}", "caption": "…"}`.
+  Use it for anything important or longer than a few symbols.
+- A short formula inside a sentence is wrapped in dollar signs in `summary`, `points`, titles and
+  glossary definitions: `ค่าเฉลี่ยคือ $\\bar{x}=\\frac{1}{n}\\sum x_i$`. A real dollar sign must be
+  written `\\$`; text like `$5 and $10` is left alone.
+- LaTeX goes into the JSON as normal text, so every backslash is doubled in JSON (`"\\frac"`).
+- If a slide shows an equation as a picture, read it (take a snapshot of that slide) and
+  re-type it as LaTeX. Don't paste the picture of an equation.
+- Never put an equation into `code`. The HTML output shows equations as LaTeX source (typeset
+  equations are PDF only), so tell the user that if they chose HTML and the document has math.
 
 ## 6. Hand over
 

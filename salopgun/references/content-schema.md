@@ -45,7 +45,8 @@ it validates first and prints one error per line if something is wrong. Fix and 
 | `glossary` | Key terms that appear in the text. Each term gets a tooltip wherever it appears. |
 | `quiz` | 5–10 questions, exactly 4 choices, `answer_index` 0–3, with an explanation. |
 | `cards` | Only when the user asked for the card page. One concept per card. |
-| `images` | `path` is absolute, or relative to the folder content.json is in. Use the paths the `images` command prints. `caption` may be empty. |
+| `equations` | Optional list of `{"latex": "…", "caption": "…"}` shown as typeset display equations (PDF). `caption` is optional. Short formulas inside text use `$…$` instead. |
+| `images` | `kind` is `picture` (embedded in the slide) or `slide` (snapshot of the whole slide); `slide` is its 1-based slide/page number; both come from the `images` / `snapshots` commands. `path` is absolute, or relative to the folder content.json is in. Use the paths the `images` command prints. `caption` may be empty. |
 
 ## dialogue.json (only when the user wants a podcast script)
 

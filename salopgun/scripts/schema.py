@@ -37,6 +37,10 @@ def validate_content(data: dict) -> list[str]:
             errors.append(f"images[{i}]: needs id and path")
         elif img.get("caption") is not None and not isinstance(img.get("caption"), str):
             errors.append(f"images[{i}].caption: must be a string")
+        elif img.get("kind") not in (None, "picture", "slide"):
+            errors.append(f"images[{i}].kind: must be picture or slide")
+        elif img.get("slide") is not None and (not isinstance(img["slide"], int) or isinstance(img["slide"], bool) or img["slide"] < 1):
+            errors.append(f"images[{i}].slide: must be a whole number from 1")
 
     seen: set[str] = set()
     for where, sec in _walk(sections):

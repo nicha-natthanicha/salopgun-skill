@@ -92,6 +92,22 @@ def _image_src(img: dict, base_dir: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
 
+def _figures(s: dict, images: dict) -> str:
+    parts = []
+    for ref in s.get("image_ids") or []:
+        img = images.get(ref)
+        if not img:
+            continue
+        is_slide = img.get("kind") == "slide"
+        caption = rich(img.get("caption") or "")
+        if is_slide:
+            label = f"สไลด์ที่ {img['slide']}" if img.get("slide") else "สไลด์"
+            caption = f"{label}: {caption}" if caption else label
+        parts.append(f'<figure{" class=\"slide\"" if is_slide else ""}><img src="{img["src"]}" alt="">'
+                     f"<figcaption>{caption}</figcaption></figure>")
+    return "".join(parts)
+
+
 def _section_bullet(s: dict, depth: int, images: dict) -> str:
     tag = f"h{min(2 + depth, 4)}"
     parts = [f'<div class="{"child " if depth else ""}{"focused" if s.get("focused") else ""}">',
@@ -103,19 +119,16 @@ def _section_bullet(s: dict, depth: int, images: dict) -> str:
     parts.append(_equations(s))
     for block in s.get("code") or []:
         parts.append(f"<pre>{escape(block['code'])}</pre>")
-    for ref in s.get("image_ids") or []:
-        img = images.get(ref)
-        if img:
-            parts.append(f'<figure><img src="{img["src"]}" alt=""><figcaption>{escape(img.get("caption") or "")}</figcaption></figure>')
+    parts.append(_figures(s, images))
     parts.extend(_section_bullet(c, depth + 1, images) for c in s.get("children") or [])
     parts.append("</div>")
     return "".join(parts)
 
 
-def _branch_items(s: dict) -> str:
+def _branch_items(s: dict, images: dict) -> str:
     items = [f"<li>{rich(p)}</li>" for p in s.get("points") or []]
     for c in s.get("children") or []:
-        items.append(f'<li><span class="sub">{rich(c["title"])}</span>{_branch_items(c)}{_equations(c)}</li>')
+        items.append(f'<li><span class="sub">{rich(c["title"])}</span>{_branch_items(c, images)}{_equations(c)}{_figures(c, images)}</li>')
     return "<ul>" + "".join(items) + "</ul>" if items else ""
 
 
@@ -124,7 +137,7 @@ def _body(content: dict, style: str, images: dict) -> str:
     if style == "mindmap":
         branches = "".join(
             f'<div class="branch{" focused" if s.get("focused") else ""}"><h2>{rich(s["title"])}</h2>'
-            f'{"<p>" + rich(s["summary"]) + "</p>" if s.get("summary") else ""}{_branch_items(s)}{_equations(s)}</div>'
+            f'{"<p>" + rich(s["summary"]) + "</p>" if s.get("summary") else ""}{_branch_items(s, images)}{_equations(s)}{_figures(s, images)}</div>'
             for s in content["sections"])
         body = f'<div class="mm-root"><span>{title}</span></div><div class="mm-grid">{branches}</div>'
     else:
