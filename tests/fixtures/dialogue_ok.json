@@ -1,0 +1,8 @@
+{"mode": "overview", "episodes": [{"title": "พื้นฐาน ML ครบทุกหัวข้อ", "section_ids": ["s1", "s2", "s3"], "lines": [
+  {"speaker": "A", "section_id": "s1", "text": "วันนี้เรามาคุยเรื่อง Machine Learning กัน มันคืออะไรกันแน่"},
+  {"speaker": "B", "section_id": "s1", "text": "คือการให้คอมพิวเตอร์เรียนรู้รูปแบบจากข้อมูล แทนการเขียนกฎเอง"},
+  {"speaker": "A", "section_id": "s2", "text": "แล้ว overfitting ล่ะ"},
+  {"speaker": "B", "section_id": "s2", "text": "คือโมเดลจำข้อมูลฝึกได้ แต่ใช้กับข้อมูลใหม่ไม่ได้"},
+  {"speaker": "A", "section_id": "s3", "text": "สุดท้าย เราวัดผลโมเดลยังไง"},
+  {"speaker": "B", "section_id": "s3", "text": "ใช้ accuracy, precision และ recall"}
+]}]}

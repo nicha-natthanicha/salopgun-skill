@@ -83,3 +83,77 @@ def validate_content(data: dict) -> list[str]:
             errors.append(f"cards[{i}]: needs front and back")
 
     return errors
+
+
+DIALOGUE_MODES = ("overview", "by_chapter")
+
+
+def _top_level_owner(content: dict) -> dict:
+    """Map every section id (any depth) to the id of its top-level section."""
+    owner = {}
+    for top in content.get("sections") or []:
+        for _, sec in _walk([top]):
+            if isinstance(sec, dict) and sec.get("id"):
+                owner[sec["id"]] = top.get("id")
+    return owner
+
+
+def validate_dialogue(dialogue: dict, content: dict) -> list[str]:
+    if not isinstance(dialogue, dict):
+        return ["dialogue must be a JSON object"]
+    errors: list[str] = []
+    mode = dialogue.get("mode")
+    if mode not in DIALOGUE_MODES:
+        errors.append(f"mode: must be one of {', '.join(DIALOGUE_MODES)}")
+    episodes = dialogue.get("episodes")
+    if not isinstance(episodes, list) or not episodes:
+        return errors + ["episodes: required non-empty list"]
+    if mode == "overview" and len(episodes) != 1:
+        errors.append("mode overview: needs exactly 1 episode")
+
+    top_ids = [s.get("id") for s in content.get("sections") or []]
+    owner = _top_level_owner(content)
+    covered: list[str] = []
+    for i, ep in enumerate(episodes):
+        where = f"episodes[{i}]"
+        if not isinstance(ep, dict):
+            errors.append(f"{where}: must be an object")
+            continue
+        if not isinstance(ep.get("title"), str) or not ep["title"].strip():
+            errors.append(f"{where}.title: required non-empty string")
+        ids = ep.get("section_ids") or []
+        if mode == "by_chapter" and not 1 <= len(ids) <= 2:
+            errors.append(f"{where}.section_ids: by_chapter episodes cover 1-2 sections")
+        covered.extend(ids)
+        lines = ep.get("lines") or []
+        if not lines:
+            errors.append(f"{where}.lines: required non-empty list")
+        position = -1
+        spoken = set()
+        for j, line in enumerate(lines):
+            if not isinstance(line, dict):
+                errors.append(f"{where}.lines[{j}]: must be an object")
+                continue
+            if line.get("speaker") not in ("A", "B"):
+                errors.append(f"{where}.lines[{j}].speaker: must be A or B")
+            if not isinstance(line.get("text"), str) or not line["text"].strip():
+                errors.append(f"{where}.lines[{j}].text: required non-empty string")
+            top = owner.get(line.get("section_id"))
+            if top not in ids:
+                errors.append(f"{where}.lines[{j}].section_id: '{line.get('section_id')}' is not in this episode")
+                continue
+            spoken.add(top)
+            if ids.index(top) < position:
+                errors.append(f"{where}.lines[{j}]: section '{top}' is out of order")
+            position = max(position, ids.index(top))
+        for sid in ids:
+            if sid not in spoken:
+                errors.append(f"{where}: section '{sid}' has no lines")
+
+    if covered != top_ids:
+        missing = [s for s in top_ids if s not in covered]
+        if missing:
+            errors.append("episodes: sections not covered: " + ", ".join(missing))
+        else:
+            errors.append("episodes: section_ids must list every top-level section once, in content order")
+    return errors

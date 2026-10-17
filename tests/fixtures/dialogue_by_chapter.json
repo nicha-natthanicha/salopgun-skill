@@ -1,0 +1,10 @@
+{"mode": "by_chapter", "episodes": [
+ {"title": "ตอนที่ 1", "section_ids": ["s1", "s2"], "lines": [
+  {"speaker": "A", "section_id": "s1", "text": "Machine Learning คืออะไร"},
+  {"speaker": "B", "section_id": "s1", "text": "การเรียนรู้จากข้อมูล"},
+  {"speaker": "A", "section_id": "s2", "text": "overfitting คืออะไร"},
+  {"speaker": "B", "section_id": "s2", "text": "จำข้อมูลฝึกมากเกินไป"}]},
+ {"title": "ตอนที่ 2", "section_ids": ["s3"], "lines": [
+  {"speaker": "A", "section_id": "s3", "text": "วัดผลยังไง"},
+  {"speaker": "B", "section_id": "s3", "text": "ใช้ precision และ recall"}]}
+]}
