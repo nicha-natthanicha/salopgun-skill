@@ -31,9 +31,26 @@ def read_json(path: str) -> dict:
 def load_content(path: str) -> dict:
     content = read_json(path)
     errors = validate_content(content)
+    base = Path(path).resolve().parent
+    for img in content.get("images") or [] if not errors else []:
+        target = Path(img["path"]) if Path(img["path"]).is_absolute() else base / img["path"]
+        if not target.is_file():
+            errors.append(f"images: file not found '{img['path']}' (paths are relative to {Path(path).name})")
     if errors:
         raise InputError("\n".join(errors))
     return content
+
+
+def load_theme(path: str) -> dict:
+    theme = read_json(path)
+    errors = []
+    for key in THEME_KEYS:
+        value = theme.get(key) if isinstance(theme, dict) else None
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+            errors.append(f"{path}: {key} must look like #1E5AA8 (re-run the theme command)")
+    if errors:
+        raise InputError("\n".join(errors))
+    return theme
 
 
 def cmd_theme(a) -> None:
@@ -60,19 +77,21 @@ def cmd_images(a) -> None:
 
 def cmd_html(a) -> None:
     content = load_content(a.content)
-    out = build_html(content, read_json(a.theme), a.out, a.cards, base_dir=Path(a.content).resolve().parent)
+    out = build_html(content, load_theme(a.theme), a.out, a.cards, base_dir=Path(a.content).resolve().parent)
     print(out)
 
 
 def cmd_pdf(a) -> None:
     content = load_content(a.content)
     custom = None
+    if a.size and a.paper != "custom":
+        raise InputError("--size only works with --paper custom")
     if a.paper == "custom":
         m = re.fullmatch(r"(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)", a.size or "")
         if not m:
             raise InputError("--size: use WIDTHxHEIGHT in mm, e.g. 100x150")
         custom = (float(m.group(1)), float(m.group(2)))
-    result = build_pdf(content, read_json(a.theme), a.out, a.paper, a.orientation, a.style,
+    result = build_pdf(content, load_theme(a.theme), a.out, a.paper, a.orientation, a.style,
                        max_pages=a.max_pages, custom_size=custom, base_dir=Path(a.content).resolve().parent)
     print(json.dumps(result, ensure_ascii=False))
 
@@ -126,7 +145,7 @@ def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
         args.fn(args)
-    except (InputError, ValueError) as exc:
+    except (InputError, ValueError, OSError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     return 0

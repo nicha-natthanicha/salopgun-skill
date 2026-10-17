@@ -1,7 +1,7 @@
 """Write NotebookLM-ready podcast scripts: topic list, two-host dialogue, checklist, plus a Customize prompt."""
 from pathlib import Path
 
-from schema import validate_dialogue
+from schema import _top_level_owner, validate_dialogue
 
 PROMPT = (
     'สนทนาเป็นภาษาไทยระหว่างพิธีกรสองคน พูดครบทุกหัวข้อในส่วน "หัวข้อที่ต้องพูดถึง" ตามลำดับ '
@@ -25,10 +25,12 @@ def _episode_md(ep: dict, number: int, total: int, content: dict) -> str:
     for s in sections:
         parts.extend(_topic_lines(s))
     parts += ["", "---", "", "## บทสนทนา", ""]
+    owner = _top_level_owner(content)
     current = None
     for line in ep["lines"]:
-        if line["section_id"] in by_id and line["section_id"] != current:
-            current = line["section_id"]
+        top = owner.get(line["section_id"])
+        if top != current:
+            current = top
             parts += [f"### {by_id[current]['title']}", ""]
         parts += [f"**{SPEAKERS[line['speaker']]}:** {line['text']}", ""]
     parts += ["---", "", "## Checklist", "", "ฟังแล้วติ๊กว่าพอดแคสต์พูดถึงหัวข้อเหล่านี้ครบไหม", ""]

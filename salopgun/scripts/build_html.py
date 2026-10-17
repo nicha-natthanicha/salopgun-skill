@@ -1,12 +1,13 @@
 """Build the single-file interactive HTML summary from content.json and a theme."""
 import base64
+from html import escape
 import copy
 import json
 import mimetypes
 from pathlib import Path
 
 from schema import validate_content
-from theme import ensure_contrast
+from theme import palette
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
@@ -30,24 +31,20 @@ def font_css() -> str:
     return "\n".join(rules)
 
 
-def _vars(theme: dict) -> str:
+def _vars(p: dict) -> str:
     return (
-        f"--primary: {theme['primary']}; --secondary: {theme['secondary']}; "
-        f"--bg: {theme['background']}; --text: {theme['text']};"
+        f"--primary: {p['primary']}; --bg: {p['background']}; --text: {p['text']}; --muted: {p['muted']}; "
+        f"--accent-text: {p['accent_text']}; --on-primary: {p['on_primary']}; --code-bg: {p['code_bg']};"
     )
 
 
 def theme_css(theme: dict) -> str:
-    light = ensure_contrast(theme, dark=False)
-    dark = ensure_contrast(theme, dark=True)
     return (
-        ":root, [data-theme='light'] { " + _vars(light) +
-        " --surface: color-mix(in srgb, var(--bg) 94%, var(--primary)); --line: color-mix(in srgb, var(--text) 15%, var(--bg));"
-        " --muted: color-mix(in srgb, var(--text) 70%, var(--bg)); --code-bg: color-mix(in srgb, var(--text) 6%, var(--bg));"
-        " --on-primary: #FFFFFF; --accent-text: #8A6100; --ok: #1A7F37; --ok-bg: #DAFBE1; --bad: #CF222E; --bad-bg: #FFEBE9; }\n"
-        "[data-theme='dark'] { " + _vars(dark) +
-        " --surface: #1B1F24; --line: #30363D; --muted: #9DA5AE; --code-bg: #0D1117;"
-        " --on-primary: #121417; --accent-text: #E3B341; --ok: #3FB950; --ok-bg: #12261E; --bad: #F85149; --bad-bg: #2D1517; }"
+        ":root, [data-theme='light'] { " + _vars(palette(theme, dark=False)) +
+        " --surface: color-mix(in srgb, var(--bg) 96%, var(--primary)); --line: color-mix(in srgb, var(--text) 15%, var(--bg));"
+        " --ok: #1A7F37; --ok-bg: #DAFBE1; --bad: #CF222E; --bad-bg: #FFEBE9; }\n"
+        "[data-theme='dark'] { " + _vars(palette(theme, dark=True)) +
+        " --surface: #1B1F24; --line: #30363D; --ok: #3FB950; --ok-bg: #12261E; --bad: #F85149; --bad-bg: #2D1517; }"
     )
 
 
@@ -82,7 +79,7 @@ def build_html(content: dict, theme: dict, out_path, with_cards: bool, base_dir=
         .replace("/*__THEME__*/", theme_css(theme))
         .replace("<!--__TABS__-->", TABS if with_cards else "")
         .replace("<!--__CARDS__-->", CARDS if with_cards else "")
-        .replace('<html lang="th"', f'<html lang="{content.get("language") or "th"}"')
+        .replace('<html lang="th"', f'<html lang="{escape(content.get("language") or "th")}"')
         .replace("__CONTENT_JSON__", _embed_json(data))
     )
     out = Path(out_path)

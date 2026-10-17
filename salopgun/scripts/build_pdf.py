@@ -1,12 +1,13 @@
 """Build a print-ready summary (bullet or mind map) and render it to PDF with whatever engine exists."""
 import base64
+import re
 import mimetypes
 from html import escape
 from pathlib import Path
 
 from build_html import font_css
 from schema import validate_content
-from theme import ensure_contrast
+from theme import palette
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 ENGINES = ["playwright", "weasyprint", "print-html"]
@@ -51,7 +52,7 @@ def _section_bullet(s: dict, depth: int, images: dict) -> str:
     for ref in s.get("image_ids") or []:
         img = images.get(ref)
         if img:
-            parts.append(f'<figure><img src="{img["src"]}" alt=""><figcaption>{escape(img.get("caption", ""))}</figcaption></figure>')
+            parts.append(f'<figure><img src="{img["src"]}" alt=""><figcaption>{escape(img.get("caption") or "")}</figcaption></figure>')
     parts.extend(_section_bullet(c, depth + 1, images) for c in s.get("children") or [])
     parts.append("</div>")
     return "".join(parts)
@@ -85,15 +86,16 @@ def _body(content: dict, style: str, images: dict) -> str:
 def print_html(content: dict, theme: dict, size_mm: tuple, style: str, base_dir=None) -> str:
     if style not in STYLES:
         raise ValueError(f"style must be one of {', '.join(STYLES)}")
-    t = ensure_contrast(theme, dark=False)
+    t = palette(theme, dark=False)
     w, h = size_mm
     base_pt = 9.5 if min(w, h) < 120 else 11
     margin = 7 if min(w, h) < 120 else 14
     images = {img["id"]: {**img, "src": _image_src(img, Path(base_dir) if base_dir else Path.cwd())}
               for img in content.get("images") or []}
     theme_vars = (
-        f"--primary: {t['primary']}; --accent: {t['accent']}; --bg: {t['background']}; --text: {t['text']}; "
-        f"--on-primary: #FFFFFF; --line: #D0D7DE; --muted: #57606A; --code-bg: #F3F4F6; --base: {base_pt}pt;"
+        f"--primary: {t['primary']}; --accent: {t['accent']}; --accent-text: {t['accent_text']}; "
+        f"--bg: {t['background']}; --text: {t['text']}; --on-primary: {t['on_primary']}; --line: #D0D7DE; "
+        f"--muted: {t['muted']}; --code-bg: {t['code_bg']}; --base: {base_pt}pt;"
     )
     page = (ASSETS / "print.html").read_text(encoding="utf-8")
     return (
@@ -125,10 +127,22 @@ def _render_weasyprint(html: str, out: Path) -> None:
     weasyprint.HTML(string=html).write_pdf(str(out))
 
 
-def _count_pages(path: Path) -> int:
-    from pypdf import PdfReader
+def _count_pages(path: Path):
+    try:
+        from pypdf import PdfReader
 
-    return len(PdfReader(str(path)).pages)
+        return len(PdfReader(str(path)).pages)
+    except ImportError:
+        pass
+    try:
+        import pymupdf
+
+        with pymupdf.open(path) as doc:
+            return len(doc)
+    except ImportError:
+        pass
+    count = len(re.findall(rb"/Type\s*/Page(?![a-zA-Z])", path.read_bytes()))
+    return count or None
 
 
 def build_pdf(content: dict, theme: dict, out_path, paper: str, orientation: str, style: str,
@@ -150,5 +164,5 @@ def build_pdf(content: dict, theme: dict, out_path, paper: str, orientation: str
         except Exception:  # noqa: BLE001 - engine missing or broken: try the next one
             continue
         pages = _count_pages(out)
-        return {"path": str(out), "pages": pages, "over_limit": bool(max_pages) and pages > max_pages, "engine": engine}
+        return {"path": str(out), "pages": pages, "over_limit": bool(max_pages and pages and pages > max_pages), "engine": engine}
     raise RuntimeError("no PDF engine configured")

@@ -12,6 +12,7 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font-family: Sarabun, "Noto Sans Thai", system-ui, sans-serif; font-size: 17px; line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 a { color: var(--primary); }
 header.bar {
@@ -62,11 +63,11 @@ section.topic section.topic { margin-left: 4px; padding-left: 12px; border-top: 
 .topic-head > :first-child { flex: 1; min-width: 0; margin: 8px 0 4px; }
 .topic.focused > .topic-head > :first-child { color: var(--primary); }
 .badge { font-size: 13px; padding: 0 8px; border-radius: 99px; background: var(--primary); color: var(--on-primary); }
-.back, .reveal { font-size: 14px; }
+a.back, .reveal { font-size: 14px; }
 .reveal { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 0 10px; }
 .points.hidden li { display: none; }
 .points.hidden::before { content: "ซ่อนอยู่ ลองนึกเองก่อน แล้วกด \"เฉลย\""; color: var(--muted); font-style: italic; }
-pre { overflow-x: auto; background: var(--code-bg); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; }
+pre { overflow-x: auto; overflow-wrap: normal; background: var(--code-bg); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; }
 figure { margin: 12px 0; }
 figure img { max-width: 100%; height: auto; border-radius: 8px; }
 figcaption { font-size: 14px; color: var(--muted); }
@@ -88,7 +89,7 @@ abbr.term.show::after {
 .card.flipped .back { display: block; }
 .card .front { font-weight: 700; font-size: 1.1em; }
 [hidden] { display: none !important; }
-@media print { header.bar, nav#toc, .reveal, .back { display: none !important; } .layout { display: block; } }
+@media print { header.bar, nav#toc, .reveal, a.back { display: none !important; } .layout { display: block; } }
 </style>
 </head>
 <body data-layout="mobile">

@@ -19,7 +19,7 @@ def text_boxes_inside_page(pdf_path) -> bool:
     with pymupdf.open(pdf_path) as doc:
         for page in doc:
             area = page.rect
-            for x0, y0, x1, y1, *_ in page.get_text("blocks"):
+            for x0, y0, x1, y1, *_ in page.get_text("words", clip=pymupdf.INFINITE_RECT()):
                 if x0 < area.x0 - 1 or y0 < area.y0 - 1 or x1 > area.x1 + 1 or y1 > area.y1 + 1:
                     return False
     return True

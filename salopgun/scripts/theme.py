@@ -51,12 +51,32 @@ def _toward(hex_color: str, target: tuple[int, int, int], amount: float) -> str:
 def _readable(color: str, bg: str) -> str:
     if contrast_ratio(color, bg) >= MIN_CONTRAST:
         return color
-    target = (0, 0, 0) if _luminance(bg) > 0.5 else (255, 255, 255)
-    for step in range(1, 21):
-        candidate = _toward(color, target, step / 20)
-        if contrast_ratio(candidate, bg) >= MIN_CONTRAST:
-            return candidate
-    return _hex(target)
+    targets = sorted([(0, 0, 0), (255, 255, 255)], key=lambda t: -contrast_ratio(_hex(t), bg))
+    for target in targets:
+        for step in range(1, 21):
+            candidate = _toward(color, target, step / 20)
+            if contrast_ratio(candidate, bg) >= MIN_CONTRAST:
+                return candidate
+    return _hex(targets[0])
+
+
+def palette(theme: dict, dark: bool) -> dict:
+    """Every colour a template needs, with each text role checked against its background."""
+    bg = DARK_BACKGROUND if dark else theme["background"]
+    if not dark and _luminance(bg) < 0.5:
+        bg = "#FFFFFF"  # light mode always gets a light page, even for dark slide decks
+    text = _readable("#E6E8EB" if dark else theme["text"], bg)
+    primary = _readable(theme["primary"], bg)
+    muted = _readable(_toward(text, _rgb(bg), 0.3), bg)
+    code_bg = _toward(bg, _rgb(text), 0.05)
+    if contrast_ratio(text, code_bg) < MIN_CONTRAST:
+        code_bg = bg
+    on_primary = max(("#FFFFFF", "#000000"), key=lambda c: contrast_ratio(c, primary))
+    return {
+        "background": bg, "text": text, "primary": primary, "muted": muted,
+        "accent": theme["accent"], "accent_text": _readable(theme["accent"], bg),
+        "on_primary": on_primary, "code_bg": code_bg,
+    }
 
 
 def ensure_contrast(theme: dict, dark: bool) -> dict:

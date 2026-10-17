@@ -35,6 +35,8 @@ def validate_content(data: dict) -> list[str]:
     for i, img in enumerate(images):
         if not isinstance(img, dict) or not _is_str(img.get("id")) or not _is_str(img.get("path")):
             errors.append(f"images[{i}]: needs id and path")
+        elif img.get("caption") is not None and not isinstance(img.get("caption"), str):
+            errors.append(f"images[{i}].caption: must be a string")
 
     seen: set[str] = set()
     for where, sec in _walk(sections):
@@ -50,8 +52,11 @@ def validate_content(data: dict) -> list[str]:
             seen.add(sid)
         if not _is_str(sec.get("title")):
             errors.append(f"{where}.title: required non-empty string")
-        if not isinstance(sec.get("points", []), list):
+        points = sec.get("points") or []
+        if not isinstance(points, list) or not all(isinstance(p, str) for p in points):
             errors.append(f"{where}.points: must be a list of strings")
+        if sec.get("summary") is not None and not isinstance(sec.get("summary"), str):
+            errors.append(f"{where}.summary: must be a string")
         for j, block in enumerate(sec.get("code") or []):
             if not isinstance(block, dict) or not isinstance(block.get("code"), str):
                 errors.append(f"{where}.code[{j}]: needs a code string")
@@ -138,7 +143,8 @@ def validate_dialogue(dialogue: dict, content: dict) -> list[str]:
                 errors.append(f"{where}.lines[{j}].speaker: must be A or B")
             if not isinstance(line.get("text"), str) or not line["text"].strip():
                 errors.append(f"{where}.lines[{j}].text: required non-empty string")
-            top = owner.get(line.get("section_id"))
+            sid = line.get("section_id")
+            top = owner.get(sid) if isinstance(sid, str) else None
             if top not in ids:
                 errors.append(f"{where}.lines[{j}].section_id: '{line.get('section_id')}' is not in this episode")
                 continue

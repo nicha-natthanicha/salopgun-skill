@@ -60,11 +60,13 @@ prints what is wrong, one problem per line: fix your JSON and run it again.
    asked for the card page.
 4. **Output:**
    - HTML: `html --content content.json --theme theme.json [--cards] --out <outputs>/<name>.html`
-   - PDF: `pdf --content content.json --theme theme.json --paper A4 --orientation portrait --style bullet [--max-pages N] [--size WxH] --out <outputs>/<name>.pdf`.
+   - PDF: `pdf --content content.json --theme theme.json --paper A4 --orientation portrait --style bullet [--max-pages N] --out <outputs>/<name>.pdf`.
+     For `ระบุเอง` use `--paper custom --size WxH` (mm, e.g. `100x150`).
      It prints JSON. If `over_limit` is true, shorten the topics that are **not** focused first,
      then rebuild; at most 3 tries, then tell the user how many pages it came to.
      If `engine` is `print-html`, no PDF tool exists here: you got a print-ready HTML file
-     instead. Tell the user to open it in a browser and choose Print → Save as PDF.
+     instead and `pages` is 0, so the page count was not checked; don't claim one. Tell the user
+     to open it in a browser and choose Print → Save as PDF, and that the page count may differ.
 5. **Podcast** (if wanted): write `dialogue.json` following `references/podcast-guide.md`, then
    `podcast --content content.json --dialogue dialogue.json --out-dir <outputs>/podcast`.
 
