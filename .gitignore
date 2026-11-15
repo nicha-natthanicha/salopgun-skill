@@ -3,3 +3,4 @@
 dist/
 __pycache__/
 .pw.txt
+.pip.log
